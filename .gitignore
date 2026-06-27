@@ -1,0 +1,10 @@
+# generated outputs
+results/
+logs/
+
+# python
+__pycache__/
+*.pyc
+
+# inputs you provide locally
+*.fasta
