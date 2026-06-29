@@ -46,18 +46,35 @@ class ImmunoStub(nn.Module):
         return self.net(x).squeeze(-1)                    # (B,)
 
 
-def load_immuno_oracle(path: str, device: str) -> nn.Module:
+def load_immuno_oracle(path: str, device: str,
+                       hla_a: str = None, hla_b: str = None,
+                       hla_c: str = None,
+                       max_batch: int = 4096) -> nn.Module:
     """
     Load the immunogenicity oracle.
 
-    path == "stub" (or empty / missing file) -> ImmunoStub
+    path == "stub"      -> ImmunoStub (placeholder)
+    path == "mhcflurry" -> MHCFlurryOracle (requires --hla-a/b/c)
     otherwise torch.load(path):
         * a full nn.Module                       -> used directly
         * a dict with "model" being an nn.Module -> that module
     Anything else raises, with a reminder of the contract.
     """
-    if not path or path == "stub" or not __import__("os").path.exists(path):
+    if not path or path == "stub":
         print(f"[oracle] using ImmunoStub (path={path!r})")
+        return ImmunoStub().to(device).eval()
+
+    if path == "mhcflurry":
+        from oracle_mhcflurry import load_mhcflurry_oracle
+        if not (hla_a and hla_b and hla_c):
+            raise ValueError(
+                "--oracle mhcflurry requires --hla-a, --hla-b, --hla-c "
+                "allele frequency CSVs")
+        return load_mhcflurry_oracle(hla_a, hla_b, hla_c, device=device,
+                                     max_batch=max_batch)
+
+    if not __import__("os").path.exists(path):
+        print(f"[oracle] file not found, using ImmunoStub (path={path!r})")
         return ImmunoStub().to(device).eval()
 
     obj = torch.load(path, map_location=device)

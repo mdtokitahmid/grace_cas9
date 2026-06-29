@@ -125,8 +125,9 @@ def make_evaluator(immuno: Immuno, naturalness, wt_seq: str):
 
 
 def is_successful(rec: dict, wt: dict, nat_drop: float) -> bool:
-    """Successful = naturalness preserved AND immunogenicity actually improved."""
-    natural_enough = rec["ll_drop"] <= nat_drop
+    """Successful = naturalness preserved AND immunogenicity actually improved.
+    nat_drop is in mean NLL units; ll_drop is in sum LL units."""
+    natural_enough = rec["ll_drop"] <= nat_drop * len(wt["sequence"])
     improved       = rec["immuno_hinge"] < wt["immuno_hinge"]
     return natural_enough and improved
 

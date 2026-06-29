@@ -34,7 +34,8 @@ def optimize(wt_seq, immuno, naturalness, evaluate, wt_record, cfg):
     opt     = torch.optim.Adam(params, lr=cfg["lr"])
     X_orig  = sequence_to_onehot(wt_seq).to(device)
 
-    floor = wt_record["naturalness_ll"] - cfg["nat_drop"]   # naturalness must stay >= floor
+    # nat_drop is in mean NLL units; convert to sum LL units for the floor
+    floor = wt_record["naturalness_ll"] - cfg["nat_drop"] * L
 
     candidates = {}   # seq -> record  (dedup)
     history = []
@@ -75,9 +76,11 @@ def optimize(wt_seq, immuno, naturalness, evaluate, wt_record, cfg):
         # projection_ratio = how much of the immuno gradient survived the naturalness
         # projection. ~1 -> objectives compatible; ~0 -> tightly coupled / stuck.
         proj_ratio = (d.norm() / (g_imm.norm() + 1e-12)).item()
+        step_nll = -rec['naturalness_ll'] / len(wt_seq)
+        soft_nll = -ll.item() / L
         print(f"[grace] step {step:4d}/{cfg['steps']} | immuno_hinge {rec['immuno_hinge']:9.4f} "
               f"(soft {L_imm.item():9.4f}) | epitopes {rec['n_epitopes']:3d} "
-              f"| ll {rec['naturalness_ll']:9.3f} ll_drop {rec['ll_drop']:7.3f} "
+              f"| mean_nll {step_nll:.4f} (soft {soft_nll:.4f}) "
               f"| n_mut {rec['n_mut']:3d} | proj {proj_ratio:.3f}"
               + ("  [floor!]" if ll.item() < floor else ""), flush=True)
 

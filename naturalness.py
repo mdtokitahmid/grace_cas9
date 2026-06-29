@@ -67,8 +67,11 @@ _PROGEN_AA_ID = {  # our 20 canonical AAs -> ProGen2 token id
 
 class Progen2Naturalness:
     def __init__(self, ckpt: str, device: str):
-        from transformers import AutoModelForCausalLM
-        model = AutoModelForCausalLM.from_pretrained(ckpt, trust_remote_code=True)
+        import sys, os
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__),
+                        "..", "deimmunization", "opencrispr-repro-main", "src"))
+        from opencrispr_repro.modeling_progen2 import ProGenForCausalLM
+        model = ProGenForCausalLM.from_pretrained(ckpt)
         self.model = model.to(device).eval()
         for p in self.model.parameters():
             p.requires_grad_(False)
